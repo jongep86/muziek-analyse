@@ -1,0 +1,8 @@
+flask
+librosa
+pychord
+numpy
+scipy
+scikit-learn
+numba
+soundfile

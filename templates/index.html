@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Tracks — Muziek-Analyse{% endblock %}
+
+{% block content %}
+<!-- Active analyses banner -->
+{% if active_tracks %}
+<div class="active-banner" id="active-banner">
+    {% for t in active_tracks %}
+    <div class="active-item" data-track-id="{{ t.id }}">
+        <span class="spinner"></span>
+        <span class="active-name">{{ t.name }}</span>
+        <span class="active-step">{{ t.status }}...</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Search / Filter -->
+<div class="search-bar">
+    <form method="GET" action="{{ url_for('index') }}" class="search-form">
+        <input type="text" name="q" value="{{ q }}" placeholder="Zoek op naam..." class="search-input">
+        <input type="text" name="key" value="{{ key_filter }}" placeholder="Key (bijv. Cm)" class="filter-input">
+        <input type="number" name="bpm_min" value="{{ bpm_min }}" placeholder="BPM min" class="filter-input filter-small">
+        <input type="number" name="bpm_max" value="{{ bpm_max }}" placeholder="BPM max" class="filter-input filter-small">
+        <button type="submit" class="btn btn-primary">Zoeken</button>
+        {% if q or key_filter or bpm_min or bpm_max %}
+        <a href="{{ url_for('index') }}" class="btn btn-ghost">Reset</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Track listing -->
+{% if tracks %}
+<div class="track-grid">
+    {% for track in tracks %}
+    <div class="track-card {% if track.status != 'done' %}track-card-pending{% endif %}">
+        {% if track.status == 'done' %}
+        <a href="{{ url_for('track_detail', track_id=track.id) }}" class="track-link">
+        {% endif %}
+            <div class="track-header">
+                <h3 class="track-name">{{ track.name }}</h3>
+                {% if track.status == 'done' %}
+                <span class="badge badge-done">Klaar</span>
+                {% elif track.status == 'analysing' %}
+                <span class="badge badge-analysing"><span class="spinner-small"></span> Analyseren</span>
+                {% elif track.status == 'pending' %}
+                <span class="badge badge-pending">Wachtend</span>
+                {% elif track.status == 'error' %}
+                <span class="badge badge-error" title="{{ track.error_message }}">Fout</span>
+                {% endif %}
+            </div>
+            {% if track.status == 'done' %}
+            <div class="track-meta">
+                <span class="track-key">{{ track.key }}{{ 'm' if track.mode == 'minor' else '' }}</span>
+                <span class="track-bpm">{{ track.bpm }} BPM</span>
+                <span class="track-duration">{{ track.duration|fmt_time }}</span>
+            </div>
+            {% endif %}
+        {% if track.status == 'done' %}
+        </a>
+        {% endif %}
+
+        <div class="track-actions">
+            {% if track.status == 'done' %}
+            <a href="{{ url_for('export_html', track_id=track.id) }}" class="btn btn-small">HTML</a>
+            <a href="{{ url_for('export_markdown', track_id=track.id) }}" class="btn btn-small">Markdown</a>
+            {% endif %}
+            {% if track.status in ('done', 'error') %}
+            <form method="POST" action="{{ url_for('reanalyse', track_id=track.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-small btn-ghost">Heranalyseer</button>
+            </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('delete', track_id=track.id) }}" style="display:inline;"
+                  onsubmit="return confirm('Weet je zeker dat je deze track wilt verwijderen?')">
+                <button type="submit" class="btn btn-small btn-danger">Verwijder</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <h2>Geen tracks gevonden</h2>
+    <p>Ga naar <a href="{{ url_for('browse') }}">Nieuwe Analyse</a> om audiobestanden te analyseren.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if active_tracks %}
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% endif %}
+{% endblock %}

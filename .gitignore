@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+
+# Database
+*.db
+
+# Audio files
+tracks/
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+*.m4a
+*.mp3 alias
+
+# Generated output
+output/
+
+# Claude
+.claude/
+
+# macOS
+.DS_Store
+*.swp
