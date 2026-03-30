@@ -41,18 +41,27 @@ def init_db(db_path=None):
         CREATE INDEX IF NOT EXISTS idx_tracks_key ON tracks(key);
         CREATE INDEX IF NOT EXISTS idx_tracks_bpm ON tracks(bpm);
     """)
+    # Migrate: add source and youtube_url columns if missing
+    cursor = conn.execute("PRAGMA table_info(tracks)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if 'source' not in columns:
+        conn.execute("ALTER TABLE tracks ADD COLUMN source TEXT DEFAULT 'local'")
+    if 'youtube_url' not in columns:
+        conn.execute("ALTER TABLE tracks ADD COLUMN youtube_url TEXT")
+
     conn.commit()
     conn.close()
 
 
-def create_track(name, file_path, file_size=None, filename_key=None, filename_bpm=None, db_path=None):
+def create_track(name, file_path, file_size=None, filename_key=None, filename_bpm=None,
+                 source='local', youtube_url=None, db_path=None):
     """Insert a new track. Returns track id, or None if already exists."""
     conn = get_db(db_path)
     try:
         cur = conn.execute(
-            """INSERT INTO tracks (name, file_path, file_size, filename_key, filename_bpm)
-               VALUES (?, ?, ?, ?, ?)""",
-            (name, file_path, file_size, filename_key, filename_bpm)
+            """INSERT INTO tracks (name, file_path, file_size, filename_key, filename_bpm, source, youtube_url)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (name, file_path, file_size, filename_key, filename_bpm, source, youtube_url)
         )
         conn.commit()
         return cur.lastrowid
@@ -158,6 +167,17 @@ def update_key(track_id, key, mode, db_path=None):
             "UPDATE tracks SET analysis_json = ? WHERE id = ?",
             (json.dumps(data, ensure_ascii=False), track_id)
         )
+    conn.commit()
+    conn.close()
+
+
+def update_file_path(track_id, file_path, file_size=None, db_path=None):
+    """Update file path and size after download."""
+    conn = get_db(db_path)
+    conn.execute(
+        "UPDATE tracks SET file_path = ?, file_size = ? WHERE id = ?",
+        (file_path, file_size, track_id)
+    )
     conn.commit()
     conn.close()
 

@@ -7,9 +7,9 @@ from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 import io
 
-from config import DB_PATH, DEFAULT_AUDIO_DIR, AUDIO_EXTENSIONS, OUTPUT_DIR, SECRET_KEY
+from config import DB_PATH, DEFAULT_AUDIO_DIR, AUDIO_EXTENSIONS, OUTPUT_DIR, SECRET_KEY, YOUTUBE_DOWNLOAD_DIR
 from models import init_db, create_track, get_track, list_tracks, search_tracks, delete_track, update_status, update_key
-from tasks import enqueue, get_status
+from tasks import enqueue, enqueue_youtube, get_status
 
 # Lazy imports to avoid slow numpy/librosa import at startup
 def parse_filename_metadata(filename):
@@ -43,7 +43,7 @@ def index():
 
     # Get pending/analysing tracks for status display
     all_tracks = list_tracks()
-    active_tracks = [t for t in all_tracks if t['status'] in ('pending', 'analysing')]
+    active_tracks = [t for t in all_tracks if t['status'] in ('pending', 'analysing', 'downloading')]
 
     return render_template('index.html', tracks=tracks, active_tracks=active_tracks,
                           q=q, key_filter=key_filter, bpm_min=bpm_min, bpm_max=bpm_max)
@@ -135,6 +135,40 @@ def export_markdown(track_id):
         as_attachment=True,
         download_name=f"{track['name']}.md"
     )
+
+
+@app.route('/youtube', methods=['POST'])
+def youtube_import():
+    """Import a track from YouTube URL."""
+    from youtube import validate_youtube_url, extract_info
+
+    url = request.form.get('youtube_url', '').strip()
+    if not url:
+        flash('Geen YouTube URL opgegeven.', 'error')
+        return redirect(url_for('index'))
+
+    if not validate_youtube_url(url):
+        flash('Ongeldige YouTube URL.', 'error')
+        return redirect(url_for('index'))
+
+    try:
+        info = extract_info(url)
+    except Exception as e:
+        flash(f'Kon video-info niet ophalen: {e}', 'error')
+        return redirect(url_for('index'))
+
+    title = info['title']
+    # Use a placeholder file_path until download completes
+    placeholder_path = f"youtube://{url}"
+    track_id = create_track(title, placeholder_path, source='youtube', youtube_url=url)
+    if track_id is None:
+        flash(f'Track "{title}" bestaat al in de database.', 'warning')
+        return redirect(url_for('index'))
+
+    os.makedirs(YOUTUBE_DOWNLOAD_DIR, exist_ok=True)
+    enqueue_youtube(track_id, url, YOUTUBE_DOWNLOAD_DIR, DB_PATH)
+    flash(f'YouTube-import gestart voor "{title}".', 'success')
+    return redirect(url_for('index'))
 
 
 @app.route('/analyse', methods=['POST'])
@@ -269,6 +303,11 @@ def delete(track_id):
     """Delete a track from the database."""
     track = get_track(track_id)
     if track:
+        # Remove downloaded file for YouTube tracks
+        if track.get('source') == 'youtube' and track.get('file_path'):
+            file_path = track['file_path']
+            if not file_path.startswith('youtube://') and os.path.isfile(file_path):
+                os.remove(file_path)
         delete_track(track_id)
         flash(f'"{track["name"]}" verwijderd.', 'success')
     return redirect(url_for('index'))
@@ -333,5 +372,6 @@ def fmt_size_filter(size):
 
 if __name__ == '__main__':
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(YOUTUBE_DOWNLOAD_DIR, exist_ok=True)
     port = int(os.environ.get('PORT', 5050))
     app.run(debug=True, host='0.0.0.0', port=port, threaded=True)

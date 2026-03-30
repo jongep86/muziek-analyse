@@ -105,6 +105,11 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* YouTube import */
+.youtube-import { margin-bottom: 16px; }
+.youtube-form { display: flex; gap: 8px; }
+.youtube-form .search-input { flex: 1; }
+
 /* Search bar */
 .search-bar { margin-bottom: 20px; }
 .search-form { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -167,6 +172,7 @@ body {
 .badge-analysing { background: rgba(243,156,18,0.15); color: #f39c12; display: inline-flex; align-items: center; gap: 4px; }
 .badge-pending { background: rgba(52,152,219,0.15); color: #3498db; }
 .badge-error { background: rgba(231,76,60,0.15); color: #e74c3c; }
+.badge-downloading { background: rgba(155,89,182,0.15); color: #9b59b6; display: inline-flex; align-items: center; gap: 4px; }
 
 /* Section card (reused in multiple pages) */
 .section-card {
