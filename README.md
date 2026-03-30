@@ -1,6 +1,6 @@
 # Muziek-Analyse
 
-Analyseer audiobestanden en genereer interactieve improvisatiegidsen voor trompet in Bb.
+Analyseer audiobestanden en genereer interactieve improvisatiegidsen voor Bb trompet en Eb altsaxofoon.
 
 ## Wat doet het?
 
@@ -21,7 +21,7 @@ De web-interface toont per track:
 - Tijdlijn met akkoorden en schalen
 - Herkende melodische motieven met nootnamen
 - Melodie-contour visualisatie
-- Bb-trompet transpositie toggle
+- Instrumenttranspositie (Bb trompet / Eb altsaxofoon / concert pitch)
 
 ## Installatie
 
