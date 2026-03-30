@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from analyse import (
     NOTE_NAMES, NOTE_ROLES, SCALES, PATTERN_CHARACTERS,
-    note_to_index, index_to_note, transpose_for_bb,
+    note_to_index, index_to_note, transpose_for_bb, transpose_for_eb,
     get_chord_quality, get_chord_tones, get_scale_for_chord,
     classify_notes_for_key, classify_notes_for_chord,
     generate_phrase_suggestions, get_trumpet_tips,
@@ -70,6 +70,8 @@ def _prepare_template_data(track_name, analysis_data):
 
     bb_key_idx = transpose_for_bb(note_to_index(key))
     bb_key = index_to_note(bb_key_idx)
+    eb_key_idx = transpose_for_eb(note_to_index(key))
+    eb_key = index_to_note(eb_key_idx)
     mode_nl = 'majeur' if mode == 'major' else 'mineur'
 
     # Deep house patterns for this key/mode
@@ -120,7 +122,7 @@ def _prepare_template_data(track_name, analysis_data):
     return {
         'track_name': track_name,
         'key': key, 'mode': mode, 'mode_nl': mode_nl,
-        'bb_key': bb_key, 'bpm': bpm, 'duration': duration,
+        'bb_key': bb_key, 'eb_key': eb_key, 'bpm': bpm, 'duration': duration,
         'key_confidence': key_confidence,
         'bars': bars,
         'global_note_roles': global_note_roles,
@@ -298,14 +300,18 @@ footer {{ text-align: center; padding: 16px; color: #444; font-size: 0.75em; }}
     <div class="meta-grid">
         <div class="meta-card"><div class="label">Toonsoort (Concert)</div><div class="value">{key} {mode_nl}</div><div class="sub">Betrouwbaarheid: {round(key_confidence * 100)}%</div></div>
         <div class="meta-card"><div class="label">Toonsoort (Bb Trompet)</div><div class="value" id="bb-key">{bb_key} {mode_nl}</div></div>
+        <div class="meta-card"><div class="label">Toonsoort (Eb Alt Sax)</div><div class="value" id="eb-key">{eb_key} {mode_nl}</div></div>
         <div class="meta-card"><div class="label">Tempo</div><div class="value">{bpm} BPM</div></div>
         <div class="meta-card"><div class="label">Duur</div><div class="value">{int(duration // 60)}:{int(duration % 60):02d}</div></div>
         <div class="meta-card"><div class="label">Secties / Akkoorden</div><div class="value">{len(sections)} / {unique_count}</div><div class="sub">{len(chords)} wissels totaal</div></div>
     </div>
     <div class="toggle-container">
-        <label class="toggle-switch"><input type="checkbox" id="transpose-toggle" checked><span class="toggle-slider"></span></label>
-        <span>Bb Trompet transpositie</span>
-        <span style="color: #888; font-size: 0.8em;">(Concert pitch als uit)</span>
+        <label for="transpose-select" style="color:#ccc;">Transpositie:</label>
+        <select id="transpose-select" style="background:#1a1a2e; color:#fff; border:1px solid #444; padding:6px 12px; border-radius:6px; font-size:0.95em; margin-left:8px;">
+            <option value="bb" selected>Bb Trompet (+2)</option>
+            <option value="eb">Eb Alt Sax (+9)</option>
+            <option value="concert">Concert pitch</option>
+        </select>
     </div>
 </header>
 
@@ -371,7 +377,8 @@ const patternCharacters = {pattern_chars_json};
 const melodyData = {melody_json};
 const duration = {round(duration, 2)};
 const bpm = {bpm};
-let transposeBb = true;
+let transposeMode = 'bb'; // 'concert', 'bb', 'eb'
+function getTransposeSemitones() {{ return transposeMode === 'bb' ? 2 : transposeMode === 'eb' ? 9 : 0; }}
 let activePatternFilter = 'all';
 
 const ROLE_INFO = {{
@@ -382,15 +389,16 @@ const ROLE_INFO = {{
     passing:    {{ label: 'Doorgang',    color: '#9b59b6' }},
 }};
 
-function noteDisplay(idx) {{ return NOTE_NAMES[transposeBb ? (idx + 2) % 12 : idx]; }}
+function noteDisplay(idx) {{ const s = getTransposeSemitones(); return NOTE_NAMES[(idx + s) % 12]; }}
 
 function chordDisplay(s) {{
-    if (!transposeBb) return s;
+    const semi = getTransposeSemitones();
+    if (semi === 0) return s;
     let root = s[0], rest = s.slice(1);
     if (rest.length > 0 && (rest[0]==='#'||rest[0]==='b')) {{ root += rest[0]; rest = rest.slice(1); }}
     const idx = NOTE_NAMES.indexOf(root);
     if (idx === -1) return s;
-    return NOTE_NAMES[(idx + 2) % 12] + rest;
+    return NOTE_NAMES[(idx + semi) % 12] + rest;
 }}
 
 function colorClass(q) {{
@@ -485,7 +493,7 @@ function buildGlobalNoteMap() {{
     const container = document.getElementById('global-notemap');
     container.innerHTML = '';
     for (let i = 0; i < 12; i++) {{
-        const di = transposeBb ? (i + 2) % 12 : i;
+        const di = (i + getTransposeSemitones()) % 12;
         const role = globalRoles[String(i)] || 'passing';
         const rl = ROLE_INFO[role] ? ROLE_INFO[role].label : role;
         container.innerHTML += '<div class="note-cell ' + role + '"><span class="note-name">' + NOTE_NAMES[di] + '</span><span class="note-role">' + rl + '</span></div>';
@@ -569,7 +577,7 @@ function buildPatternGrid() {{
             }}
             const noteEl = document.createElement('div');
             noteEl.className = 'pattern-note ' + note.role;
-            noteEl.textContent = transposeBb ? NOTE_NAMES[(note.index + 2) % 12] : note.name;
+            noteEl.textContent = NOTE_NAMES[(note.index + getTransposeSemitones()) % 12];
             notesRow.appendChild(noteEl);
         }});
         card.appendChild(notesRow);
@@ -673,8 +681,8 @@ function buildMotifCards() {{
     }});
 }}
 
-document.getElementById('transpose-toggle').addEventListener('change', function() {{
-    transposeBb = this.checked;
+document.getElementById('transpose-select').addEventListener('change', function() {{
+    transposeMode = this.value;
     buildGlobalNoteMap(); buildTimeline(); buildSections(); buildPatternGrid();
     buildMelodyContour(); buildMotifCards();
 }});
@@ -701,6 +709,7 @@ def generate_markdown(track_name, analysis_data):
     lines.append(f"|---|---|")
     lines.append(f"| **Toonsoort (Concert)** | {d['key']} {d['mode_nl']} ({round(d['key_confidence'] * 100)}%) |")
     lines.append(f"| **Toonsoort (Bb Trompet)** | {d['bb_key']} {d['mode_nl']} |")
+    lines.append(f"| **Toonsoort (Eb Alt Sax)** | {d['eb_key']} {d['mode_nl']} |")
     lines.append(f"| **Tempo** | {d['bpm']} BPM |")
     dur = d['duration']
     lines.append(f"| **Duur** | {int(dur // 60)}:{int(dur % 60):02d} |")
