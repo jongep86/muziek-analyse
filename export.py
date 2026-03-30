@@ -154,6 +154,7 @@ def generate_html(track_name, analysis_data):
     key = d['key']
     mode_nl = d['mode_nl']
     bb_key = d['bb_key']
+    eb_key = d['eb_key']
     bpm = d['bpm']
     duration = d['duration']
     key_confidence = d['key_confidence']
