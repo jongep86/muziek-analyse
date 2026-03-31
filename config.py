@@ -13,6 +13,9 @@ DEFAULT_AUDIO_DIR = '/Volumes/LACIE SHARE/Muziek/___sorted/Deep House/For Trumpe
 # Supported audio extensions
 AUDIO_EXTENSIONS = {'.mp3', '.wav', '.flac', '.ogg', '.m4a', '.aiff', '.aif'}
 
+# YouTube download directory (same as tracks folder)
+YOUTUBE_DOWNLOAD_DIR = os.path.join(BASE_DIR, 'tracks')
+
 # Output directory for HTML exports
 OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
 

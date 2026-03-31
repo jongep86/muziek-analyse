@@ -15,6 +15,14 @@
 </div>
 {% endif %}
 
+<!-- YouTube import -->
+<div class="youtube-import">
+    <form method="POST" action="{{ url_for('youtube_import') }}" class="youtube-form">
+        <input type="url" name="youtube_url" placeholder="Plak een YouTube URL..." required class="search-input">
+        <button type="submit" class="btn btn-primary">Importeer van YouTube</button>
+    </form>
+</div>
+
 <!-- Search / Filter -->
 <div class="search-bar">
     <form method="GET" action="{{ url_for('index') }}" class="search-form">
@@ -43,6 +51,8 @@
                 <span class="badge badge-done">Klaar</span>
                 {% elif track.status == 'analysing' %}
                 <span class="badge badge-analysing"><span class="spinner-small"></span> Analyseren</span>
+                {% elif track.status == 'downloading' %}
+                <span class="badge badge-downloading"><span class="spinner-small"></span> Downloaden</span>
                 {% elif track.status == 'pending' %}
                 <span class="badge badge-pending">Wachtend</span>
                 {% elif track.status == 'error' %}
