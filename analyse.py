@@ -126,6 +126,11 @@ def transpose_for_bb(note_idx):
     return (note_idx + 2) % 12
 
 
+def transpose_for_eb(note_idx):
+    """Transpose concert pitch to Eb alto sax (up a major 6th = +9 semitones)."""
+    return (note_idx + 9) % 12
+
+
 def get_chord_tones(chord_str):
     """Extract chord tones from a chord string using pychord."""
     try:

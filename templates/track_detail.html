@@ -271,6 +271,10 @@
             <div class="value" id="bb-key">{{ tpl_data.bb_key }} {{ tpl_data.mode_nl }}</div>
         </div>
         <div class="meta-card-inner">
+            <div class="label">Toonsoort (Eb Alt Sax)</div>
+            <div class="value" id="eb-key">{{ tpl_data.eb_key }} {{ tpl_data.mode_nl }}</div>
+        </div>
+        <div class="meta-card-inner">
             <div class="label">Tempo</div>
             <div class="value">{{ tpl_data.bpm }} BPM</div>
         </div>
@@ -284,12 +288,12 @@
         </div>
     </div>
     <div class="toggle-container">
-        <label class="toggle-switch">
-            <input type="checkbox" id="transpose-toggle" checked>
-            <span class="toggle-slider"></span>
-        </label>
-        <span>Bb Trompet transpositie</span>
-        <span style="color: #888; font-size: 0.8em;">(Concert pitch als uit)</span>
+        <label for="transpose-select" style="color:#ccc;">Transpositie:</label>
+        <select id="transpose-select" style="background:#1a1a2e; color:#fff; border:1px solid #444; padding:6px 12px; border-radius:6px; font-size:0.95em; margin-left:8px;">
+            <option value="bb" selected>Bb Trompet (+2)</option>
+            <option value="eb">Eb Alt Sax (+9)</option>
+            <option value="concert">Concert pitch</option>
+        </select>
     </div>
 </div>
 
@@ -362,7 +366,8 @@ const patternCharacters = DATA.patternCharacters;
 const melodyData = DATA.melody;
 const duration = DATA.duration;
 const bpm = DATA.bpm;
-let transposeBb = true;
+let transposeMode = 'bb'; // 'concert', 'bb', 'eb'
+function getTransposeSemitones() { return transposeMode === 'bb' ? 2 : transposeMode === 'eb' ? 9 : 0; }
 let activePatternFilter = 'all';
 
 const ROLE_INFO = {
@@ -373,15 +378,16 @@ const ROLE_INFO = {
     passing:    { label: 'Doorgang',    color: '#9b59b6' },
 };
 
-function noteDisplay(idx) { return NOTE_NAMES[transposeBb ? (idx + 2) % 12 : idx]; }
+function noteDisplay(idx) { const s = getTransposeSemitones(); return NOTE_NAMES[(idx + s) % 12]; }
 
 function chordDisplay(s) {
-    if (!transposeBb) return s;
+    const semi = getTransposeSemitones();
+    if (semi === 0) return s;
     let root = s[0], rest = s.slice(1);
     if (rest.length > 0 && (rest[0]==='#'||rest[0]==='b')) { root += rest[0]; rest = rest.slice(1); }
     const idx = NOTE_NAMES.indexOf(root);
     if (idx === -1) return s;
-    return NOTE_NAMES[(idx + 2) % 12] + rest;
+    return NOTE_NAMES[(idx + semi) % 12] + rest;
 }
 
 function colorClass(q) {
@@ -477,7 +483,7 @@ function buildGlobalNoteMap() {
     const container = document.getElementById('global-notemap');
     container.innerHTML = '';
     for (let i = 0; i < 12; i++) {
-        const di = transposeBb ? (i + 2) % 12 : i;
+        const di = (i + getTransposeSemitones()) % 12;
         const role = globalRoles[String(i)] || 'passing';
         const rl = ROLE_INFO[role] ? ROLE_INFO[role].label : role;
         container.innerHTML += '<div class="note-cell ' + role + '"><span class="note-name">' + NOTE_NAMES[di] + '</span><span class="note-role">' + rl + '</span></div>';
@@ -595,7 +601,7 @@ function buildPatternGrid() {
             }
             const noteEl = document.createElement('div');
             noteEl.className = 'pattern-note ' + note.role;
-            noteEl.textContent = transposeBb ? NOTE_NAMES[(note.index + 2) % 12] : note.name;
+            noteEl.textContent = NOTE_NAMES[(note.index + getTransposeSemitones()) % 12];
             noteEl.title = ROLE_INFO[note.role] ? ROLE_INFO[note.role].label : note.role;
             notesRow.appendChild(noteEl);
         });
@@ -794,8 +800,8 @@ function buildMotifCards() {
     });
 }
 
-document.getElementById('transpose-toggle').addEventListener('change', function() {
-    transposeBb = this.checked;
+document.getElementById('transpose-select').addEventListener('change', function() {
+    transposeMode = this.value;
     buildGlobalNoteMap(); buildTimeline(); buildSections(); buildPatternGrid();
     buildMelodyContour(); buildMotifCards();
 });

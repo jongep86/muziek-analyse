@@ -20,7 +20,7 @@ librosa, chord-extractor, pychord, basic-pitch, numpy, scipy
 - Chromatische nootkaart per akkoord (kleurgecodeerd: 
   chord tone / spanning / approach / avoid / doorgangstoon)
 - Tijdlijn synchroon met BPM
-- Bb-trompet transpositie toggle
+- Instrumenttranspositie dropdown (Bb trompet / Eb alt sax / concert pitch)
 - Fraseersuggesties als kleurgecodeerde nootrijen
 - Trompetspecifieke tips per akkoord (register, kleur)
 - Eén zelfstandig HTML-bestand zonder externe dependencies
