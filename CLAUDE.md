@@ -1,8 +1,23 @@
 # Muzikale improvisatiegids
 
 ## Doel
-Analyseer audiobestanden in /tracks en genereer per nummer 
+Analyseer audiobestanden in /tracks en genereer per nummer
 een interactieve HTML-improvisatiegids voor trompet in Bb.
+
+## Quickstart
+```bash
+python3.13 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+Flask dev server draait op http://localhost:5050
+
+## Tech stack
+- **Backend**: Flask (app.py), Python 3.11
+- **Analyse**: librosa, pychord, numba, scipy, scikit-learn
+- **YouTube import**: yt-dlp
+- **Frontend**: Jinja2 templates, standalone HTML output
 
 ## Pipeline
 1. Laad audiobestand via librosa
@@ -14,7 +29,7 @@ een interactieve HTML-improvisatiegids voor trompet in Bb.
 7. Exporteer interactieve HTML naar /output/[tracknaam].html
 
 ## Dependencies
-librosa, chord-extractor, pychord, basic-pitch, numpy, scipy
+Zie requirements.txt. Installeer met `pip3 install -r requirements.txt`.
 
 ## Output-eisen
 - Chromatische nootkaart per akkoord (kleurgecodeerd: 
