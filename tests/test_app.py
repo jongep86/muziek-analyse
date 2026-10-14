@@ -46,24 +46,19 @@ class TestTrackDetail:
         assert rv.status_code == 302
 
 
-class TestBrowse:
-    def test_browse_loads(self, client):
-        rv = client.get('/browse?folder=/tmp')
-        assert rv.status_code == 200
-
-    def test_browse_nonexistent_folder(self, client):
-        rv = client.get('/browse?folder=/nonexistent/path')
-        assert rv.status_code == 200
-
-
-class TestAnalyseEndpoint:
-    def test_analyse_no_path(self, client):
-        rv = client.post('/analyse', data={'file_path': ''})
+class TestImportUrlEndpoint:
+    def test_import_url_empty(self, client):
+        rv = client.post('/import-url', data={'audio_url': ''})
         assert rv.status_code == 302
 
-    def test_analyse_nonexistent_file(self, client):
-        rv = client.post('/analyse', data={'file_path': '/nonexistent/file.mp3'})
+    def test_import_url_invalid_scheme(self, client):
+        rv = client.post('/import-url', data={'audio_url': 'ftp://example.com/a.mp3'})
         assert rv.status_code == 302
+
+
+class TestRemovedLocalRoutes:
+    def test_browse_gone(self, client):
+        assert client.get('/browse?folder=/tmp').status_code == 404
 
 
 class TestDeleteEndpoint:
