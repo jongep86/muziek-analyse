@@ -105,3 +105,40 @@ class TestTemplateFilters:
             f = app.jinja_env.filters['fmt_size']
             assert '1.0 MB' in f(1048576)
             assert f(None) == '—'
+
+
+class TestServerHardening:
+    def test_healthz(self, client):
+        rv = client.get('/healthz')
+        assert rv.status_code == 200
+        assert rv.get_json() == {'status': 'ok'}
+
+    def test_security_headers(self, client):
+        rv = client.get('/')
+        assert rv.headers['X-Content-Type-Options'] == 'nosniff'
+        assert rv.headers['X-Frame-Options'] == 'DENY'
+        assert "frame-ancestors 'none'" in rv.headers['Content-Security-Policy']
+        assert rv.headers['Referrer-Policy'] == 'strict-origin-when-cross-origin'
+        assert 'noindex' in rv.headers['X-Robots-Tag']
+
+    def test_html_is_gzipped(self, client):
+        rv = client.get('/', headers={'Accept-Encoding': 'gzip, br'})
+        assert rv.headers.get('Content-Encoding') == 'gzip'
+        assert 'Accept-Encoding' in rv.headers['Vary']
+
+    def test_static_versioned_and_immutable(self, client):
+        html = client.get('/').get_data(as_text=True)
+        assert '/static/style.css?v=' in html
+        start = html.index('/static/style.css?v=')
+        url = html[start:html.index('"', start)]
+        rv = client.get(url, headers={'Accept-Encoding': 'gzip'})
+        assert rv.status_code == 200
+        assert 'immutable' in rv.headers['Cache-Control']
+        assert rv.headers.get('Content-Encoding') == 'gzip'
+
+    def test_json_for_script_escapes_closing_tag(self):
+        from app import _json_for_script
+        out = _json_for_script({'name': '</script><script>alert(1)</script>'})
+        assert '</script>' not in out
+        import json
+        assert json.loads(out) == {'name': '</script><script>alert(1)</script>'}

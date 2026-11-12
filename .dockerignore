@@ -8,3 +8,9 @@ output/
 .git/
 .gitignore
 *.md
+.github/
+.smithy/
+.pytest_cache/
+tests/
+uploads/
+data/
