@@ -8,6 +8,8 @@ from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from werkzeug.utils import secure_filename
 import io
+import gzip
+import sqlite3
 
 from config import (DB_PATH, AUDIO_EXTENSIONS, OUTPUT_DIR, SECRET_KEY,
                     YOUTUBE_DOWNLOAD_DIR, UPLOAD_DIR, MAX_UPLOAD_SIZE)
@@ -22,9 +24,70 @@ def parse_filename_metadata(filename):
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE
+# Static URLs carry ?v=<mtime> (see static_version), so a long immutable cache is safe.
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
+
+# Headers from the modern-web-guidance `security` and `privacy` guides. No script-src yet:
+# the templates still use inline scripts and on* handlers, which need nonces first.
+SECURITY_HEADERS = {
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Content-Security-Policy': "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+    'X-Frame-Options': 'DENY',
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    # A personal tool, never approved for indexing (blueprint M6 / P9).
+    'X-Robots-Tag': 'noindex, nofollow',
+}
+COMPRESSIBLE = ('text/', 'application/json', 'application/javascript')
 
 # Initialize database on startup
 init_db()
+
+
+@app.url_defaults
+def static_version(endpoint, values):
+    """Add ?v=<mtime> to static URLs so browsers can cache them immutably."""
+    if endpoint == 'static' and 'filename' in values:
+        path = os.path.join(app.static_folder, values['filename'])
+        try:
+            values['v'] = int(os.stat(path).st_mtime)
+        except OSError:
+            pass
+
+
+@app.after_request
+def harden_and_compress(response):
+    """Security headers on every response, gzip for text bodies."""
+    for name, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(name, value)
+    if request.endpoint == 'static' and request.args.get('v'):
+        response.cache_control.immutable = True
+        response.cache_control.public = True
+
+    response.vary.add('Accept-Encoding')
+    if (response.status_code == 200
+            and 'gzip' in request.headers.get('Accept-Encoding', '')
+            and 'Content-Encoding' not in response.headers
+            and (response.mimetype or '').startswith(COMPRESSIBLE)
+            and (response.direct_passthrough or not response.is_streamed)):
+        response.direct_passthrough = False
+        body = response.get_data()
+        if len(body) >= 1024:
+            response.set_data(gzip.compress(body, compresslevel=6))
+            response.headers['Content-Encoding'] = 'gzip'
+    return response
+
+
+@app.route('/healthz')
+def healthz():
+    """Liveness and readiness: the app answers and the database opens."""
+    try:
+        with sqlite3.connect(DB_PATH, timeout=2) as conn:
+            conn.execute('SELECT 1').fetchone()
+    except sqlite3.Error as e:
+        return jsonify(status='error', error=str(e)), 503
+    return jsonify(status='ok')
 
 
 @app.route('/')
@@ -101,8 +164,15 @@ def track_detail(track_id):
             filename_hints['bpm_match'] = abs(track['filename_bpm'] - analysis_data['bpm']) <= 3
 
     return render_template('track_detail.html', track=track, tpl_data=tpl_data,
-                          js_data=json.dumps(js_data, ensure_ascii=False),
+                          js_data=_json_for_script(js_data),
                           filename_hints=filename_hints)
+
+
+def _json_for_script(data):
+    """JSON that is safe inside an inline <script>: a '</script>' in a track title
+    or chord label can no longer close the element."""
+    return (json.dumps(data, ensure_ascii=False)
+            .replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026'))
 
 
 @app.route('/tracks/<int:track_id>/export/html')

@@ -14,7 +14,7 @@ python app.py
 Flask dev server draait op http://localhost:5050
 
 ## Tech stack
-- **Backend**: Flask (app.py), Python 3.11
+- **Backend**: Flask (app.py), Python 3.13
 - **Analyse**: librosa, pychord, numba, scipy, scikit-learn
 - **YouTube import**: yt-dlp
 - **Frontend**: Jinja2 templates, standalone HTML output
@@ -27,6 +27,13 @@ Flask dev server draait op http://localhost:5050
 5. Map akkoorden naar toonschalen via muziektheorie-regels
 6. Genereer fraseersuggesties per akkoord op basis van chord tones
 7. Exporteer interactieve HTML naar /output/[tracknaam].html
+
+## Container
+- Multi-stage `Dockerfile`: uv on Debian 13 builds `/app/.venv`, runtime is `python:3.13-slim-trixie`. Every `FROM` is digest-pinned; Renovate bumps them.
+- Runs as uid/gid 1000. Everything it writes goes to `DATA_DIR` (`/app/data`, the volume) or `/tmp` (numba, yt-dlp and deno caches), so the root filesystem can be read-only with a tmpfs or emptyDir on `/tmp`.
+- An existing volume written by the old root image needs `fsGroup: 1000` (or a one-time chown) before this image can write to it.
+- `/healthz` answers 200 when the app runs and the SQLite database opens.
+- Local check: `docker build -t muziek-analyse . && docker run --rm --read-only --tmpfs /tmp:exec -v ma-data:/app/data -p 5050:5050 muziek-analyse`
 
 ## Dependencies
 Zie requirements.txt. Installeer met `pip3 install -r requirements.txt`.
