@@ -1,128 +1,150 @@
 {% extends "base.html" %}
-{% block title %}Tracks — Muziek-Analyse{% endblock %}
+{% block title %}Tracks · Muziek-Analyse{% endblock %}
 
 {% block content %}
-<!-- Active analyses banner -->
+<h1 class="page-title">Tracks</h1>
+
 {% if active_tracks %}
-<div class="active-banner" id="active-banner">
+<section class="active-banner" id="active-banner" aria-label="Lopende analyses">
     {% for t in active_tracks %}
     <div class="active-item" data-track-id="{{ t.id }}">
-        <span class="spinner"></span>
+        <span class="spinner" aria-hidden="true"></span>
         <span class="active-name">{{ t.name }}</span>
-        <span class="active-step">{{ t.status }}...</span>
+        <span class="active-step" aria-live="polite">{{ t.status }}...</span>
     </div>
     {% endfor %}
-</div>
+</section>
 {% endif %}
 
-<!-- YouTube import -->
-<div class="youtube-import">
-    <form method="POST" action="{{ url_for('youtube_import') }}" class="youtube-form">
-        <label for="youtube-url" class="visually-hidden">YouTube URL</label>
-        <input id="youtube-url" type="url" name="youtube_url" placeholder="Plak een YouTube URL..." required class="search-input">
-        <button type="submit" class="btn btn-primary">Importeer van YouTube</button>
-    </form>
-</div>
+<section class="import-card" aria-labelledby="import-title">
+    <h2 id="import-title">Nummer toevoegen</h2>
 
-<!-- Directe audio-link -->
-<div class="url-import">
-    <form method="POST" action="{{ url_for('import_url') }}" class="url-form">
-        <label for="audio-url" class="visually-hidden">Link naar audiobestand</label>
-        <input id="audio-url" type="url" name="audio_url" placeholder="Plak een link naar een audiobestand (mp3, wav, flac...)" required class="search-input">
-        <button type="submit" class="btn btn-primary">Importeer van link</button>
+    <form method="POST" action="{{ url_for('youtube_import') }}" class="import-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="youtube-url">YouTube-link</label>
+        <div class="field-row">
+            <input id="youtube-url" type="url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..." required class="text-input" autocomplete="off">
+            <button type="submit" class="btn btn-primary">Importeer</button>
+        </div>
     </form>
-    <p class="upload-hint">Het bestand wordt na de analyse automatisch verwijderd.</p>
-</div>
 
-<!-- Bestand uploaden -->
-<div class="upload-import">
-    <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data" class="upload-form">
-        <label for="audio-file" class="visually-hidden">Audiobestand</label>
-        <input id="audio-file" type="file" name="audio_file" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aiff,.aif" required class="search-input">
-        <button type="submit" class="btn btn-primary">Upload &amp; analyseer</button>
+    <form method="POST" action="{{ url_for('import_url') }}" class="import-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="audio-url">Link naar een audiobestand</label>
+        <p class="field-hint" id="audio-url-hint">mp3, wav, flac, ogg, m4a of aiff. Het bestand wordt na de analyse verwijderd.</p>
+        <div class="field-row">
+            <input id="audio-url" type="url" name="audio_url" placeholder="https://example.com/nummer.mp3" required class="text-input" aria-describedby="audio-url-hint" autocomplete="off">
+            <button type="submit" class="btn btn-primary">Importeer</button>
+        </div>
     </form>
-    <p class="upload-hint">Het bestand wordt na de analyse automatisch verwijderd.</p>
-</div>
 
-<!-- Search / Filter -->
-<div class="search-bar">
+    <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data" class="import-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="audio-file">Audiobestand uploaden</label>
+        <p class="field-hint" id="audio-file-hint">Maximaal 100 MB. Het bestand wordt na de analyse verwijderd.</p>
+        <div class="field-row">
+            <input id="audio-file" type="file" name="audio_file" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aiff,.aif" required class="text-input file-input" aria-describedby="audio-file-hint">
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </div>
+    </form>
+</section>
+
+<search class="search-bar">
     <form method="GET" action="{{ url_for('index') }}" class="search-form">
-        <label for="search-q" class="visually-hidden">Zoek op naam</label>
-        <input id="search-q" type="text" name="q" value="{{ q }}" placeholder="Zoek op naam..." class="search-input">
-        <label for="filter-key" class="visually-hidden">Key</label>
-        <input id="filter-key" type="text" name="key" value="{{ key_filter }}" placeholder="Key (bijv. Cm)" class="filter-input">
-        <label for="filter-bpm-min" class="visually-hidden">BPM minimum</label>
-        <input id="filter-bpm-min" type="number" name="bpm_min" value="{{ bpm_min }}" placeholder="BPM min" class="filter-input filter-small">
-        <label for="filter-bpm-max" class="visually-hidden">BPM maximum</label>
-        <input id="filter-bpm-max" type="number" name="bpm_max" value="{{ bpm_max }}" placeholder="BPM max" class="filter-input filter-small">
-        <button type="submit" class="btn btn-primary">Zoeken</button>
-        {% if q or key_filter or bpm_min or bpm_max %}
-        <a href="{{ url_for('index') }}" class="btn btn-ghost">Reset</a>
-        {% endif %}
-    </form>
-</div>
-
-<!-- Track listing -->
-{% if tracks %}
-<div class="track-grid">
-    {% for track in tracks %}
-    <div class="track-card {% if track.status != 'done' %}track-card-pending{% endif %}">
-        {% if track.status == 'done' %}
-        <a href="{{ url_for('track_detail', track_id=track.id) }}" class="track-link">
-        {% endif %}
-            <div class="track-header">
-                <h3 class="track-name">{{ track.name }}</h3>
-                {% if track.status == 'done' %}
-                <span class="badge badge-done">Klaar</span>
-                {% elif track.status == 'analysing' %}
-                <span class="badge badge-analysing"><span class="spinner-small"></span> Analyseren</span>
-                {% elif track.status == 'downloading' %}
-                <span class="badge badge-downloading"><span class="spinner-small"></span> Downloaden</span>
-                {% elif track.status == 'pending' %}
-                <span class="badge badge-pending">Wachtend</span>
-                {% elif track.status == 'error' %}
-                <span class="badge badge-error" title="{{ track.error_message }}">Fout</span>
-                {% endif %}
-            </div>
-            {% if track.status == 'done' %}
-            <div class="track-meta">
-                <span class="track-key">{{ track.key }}{{ 'm' if track.mode == 'minor' else '' }}</span>
-                <span class="track-bpm">{{ track.bpm }} BPM</span>
-                <span class="track-duration">{{ track.duration|fmt_time }}</span>
-            </div>
+        <div class="field field-grow">
+            <label for="search-q">Naam</label>
+            <input id="search-q" type="search" name="q" value="{{ q }}" class="text-input">
+        </div>
+        <div class="field">
+            <label for="filter-key">Toonsoort</label>
+            <input id="filter-key" type="text" name="key" value="{{ key_filter }}" placeholder="Cm" class="text-input filter-input" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+            <label for="filter-bpm-min">BPM vanaf</label>
+            <input id="filter-bpm-min" type="number" name="bpm_min" value="{{ bpm_min }}" min="1" max="400" inputmode="numeric" class="text-input filter-small">
+        </div>
+        <div class="field">
+            <label for="filter-bpm-max">BPM tot</label>
+            <input id="filter-bpm-max" type="number" name="bpm_max" value="{{ bpm_max }}" min="1" max="400" inputmode="numeric" class="text-input filter-small">
+        </div>
+        <div class="field-actions">
+            <button type="submit" class="btn btn-primary">Zoeken</button>
+            {% if q or key_filter or bpm_min or bpm_max %}
+            <a href="{{ url_for('index') }}" class="btn btn-ghost">Reset</a>
             {% endif %}
+        </div>
+    </form>
+</search>
+
+{% if tracks %}
+<ul class="track-grid" aria-label="Tracks">
+    {% for track in tracks %}
+    <li class="track-card {% if track.status != 'done' %}track-card-pending{% endif %}">
+        <div class="track-header">
+            <h2 class="track-name">
+                {% if track.status == 'done' %}
+                <a href="{{ url_for('track_detail', track_id=track.id) }}" class="track-link">{{ track.name }}</a>
+                {% else %}{{ track.name }}{% endif %}
+            </h2>
+            {% if track.status == 'done' %}
+            <span class="badge badge-done">Klaar</span>
+            {% elif track.status == 'analysing' %}
+            <span class="badge badge-analysing"><span class="spinner-small" aria-hidden="true"></span> Analyseren</span>
+            {% elif track.status == 'downloading' %}
+            <span class="badge badge-downloading"><span class="spinner-small" aria-hidden="true"></span> Downloaden</span>
+            {% elif track.status == 'pending' %}
+            <span class="badge badge-pending">Wachtend</span>
+            {% elif track.status == 'error' %}
+            <span class="badge badge-error">Fout</span>
+            {% endif %}
+        </div>
         {% if track.status == 'done' %}
-        </a>
+        <p class="track-meta">
+            <span class="track-key">{{ track.key }}{{ 'm' if track.mode == 'minor' else '' }}</span>
+            <span class="track-bpm">{{ track.bpm }} BPM</span>
+            <span class="track-duration">{{ track.duration|fmt_time }}</span>
+        </p>
+        {% elif track.status == 'error' and track.error_message %}
+        <p class="track-error">{{ track.error_message }}</p>
         {% endif %}
 
         <div class="track-actions">
             {% if track.status == 'done' %}
-            <a href="{{ url_for('export_html', track_id=track.id) }}" class="btn btn-small">HTML</a>
-            <a href="{{ url_for('export_markdown', track_id=track.id) }}" class="btn btn-small">Markdown</a>
+            <a href="{{ url_for('export_html', track_id=track.id) }}" class="btn btn-small btn-ghost" download>HTML</a>
+            <a href="{{ url_for('export_markdown', track_id=track.id) }}" class="btn btn-small btn-ghost" download>Markdown</a>
             {% endif %}
             {% if track.status in ('done', 'error') %}
-            <form method="POST" action="{{ url_for('reanalyse', track_id=track.id) }}" style="display:inline;">
+            <form method="POST" action="{{ url_for('reanalyse', track_id=track.id) }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-small btn-ghost">Heranalyseer</button>
             </form>
             {% endif %}
-            <form method="POST" action="{{ url_for('delete', track_id=track.id) }}" style="display:inline;"
-                  onsubmit="return confirm('Weet je zeker dat je deze track wilt verwijderen?')">
+            <form method="POST" action="{{ url_for('delete', track_id=track.id) }}" class="inline-form"
+                  data-confirm-delete="{{ track.name }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-small btn-danger">Verwijder</button>
             </form>
         </div>
-    </div>
+    </li>
     {% endfor %}
-</div>
+</ul>
 {% else %}
 <div class="empty-state">
     <h2>Geen tracks gevonden</h2>
-    <p>Importeer een nummer hierboven via een YouTube-link, een directe audio-link of door een bestand te uploaden.</p>
+    <p>Voeg hierboven een nummer toe via een YouTube-link, een directe audio-link of een upload.</p>
 </div>
 {% endif %}
+
+<dialog id="confirm-delete" class="confirm-dialog" aria-labelledby="confirm-delete-title" closedby="any">
+    <h2 id="confirm-delete-title">Track verwijderen?</h2>
+    <p><span id="confirm-delete-name"></span> en de analyse worden verwijderd. Dit kan niet ongedaan worden gemaakt.</p>
+    <form method="dialog" class="dialog-actions">
+        <button value="cancel" class="btn btn-ghost" autofocus>Annuleren</button>
+        <button value="delete" class="btn btn-danger-solid">Verwijder</button>
+    </form>
+</dialog>
 {% endblock %}
 
 {% block scripts %}
-{% if active_tracks %}
-<script src="{{ url_for('static', filename='app.js') }}"></script>
-{% endif %}
+<script src="{{ url_for('static', filename='app.js') }}" nonce="{{ csp_nonce }}" defer></script>
 {% endblock %}
