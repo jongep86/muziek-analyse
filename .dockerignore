@@ -8,3 +8,4 @@ output/
 .git/
 .gitignore
 *.md
+.flask_secret_key

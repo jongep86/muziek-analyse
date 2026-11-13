@@ -27,3 +27,4 @@ output/
 # macOS
 .DS_Store
 *.swp
+.flask_secret_key

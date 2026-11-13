@@ -3,26 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0b12">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Analyseer een nummer en krijg per akkoord toonladders, chord tones en fraseersuggesties voor Bb trompet en Eb altsax.">
 <title>{% block title %}Muziek-Analyse{% endblock %}</title>
+<link rel="icon" href="{{ url_for('static', filename='icon.svg') }}" type="image/svg+xml">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 {% block head %}{% endblock %}
 </head>
 <body>
-<nav class="main-nav">
-    <div class="nav-container">
+<a href="#content" class="skip-link">Naar de inhoud</a>
+<header class="main-nav">
+    <nav class="nav-container" aria-label="Hoofdmenu">
         <a href="{{ url_for('index') }}" class="nav-brand">Muziek-Analyse</a>
         <div class="nav-links">
-            <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Tracks</a>
+            <a href="{{ url_for('index') }}"{% if request.endpoint == 'index' %} class="active" aria-current="page"{% endif %}>Tracks</a>
         </div>
-    </div>
-</nav>
+    </nav>
+</header>
 
-<main class="container">
+<main class="container" id="content">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
+    <div class="flash-list" role="status">
     {% for category, message in messages %}
-    <div class="flash flash-{{ category }}">{{ message }}</div>
+    <p class="flash flash-{{ category }}">{{ message }}</p>
     {% endfor %}
+    </div>
     {% endif %}
     {% endwith %}
 
@@ -30,7 +38,7 @@
 </main>
 
 <footer>
-    <p>Muzikale Improvisatiegids — Bb Trompet / Eb Alt Sax</p>
+    <p>Muzikale improvisatiegids · Bb trompet / Eb altsax</p>
 </footer>
 
 {% block scripts %}{% endblock %}
