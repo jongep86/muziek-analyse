@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}Muziek-Analyse{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{# Self-hosted Umami, cookieless and no cross-site identifiers. data-domains keeps
+   the dev server on localhost:5050 out of the stats. #}
+<script defer src="https://umami.h.mijp.nl/script.js"
+        data-website-id="675ad297-4359-4a09-8457-dbef774f9826"
+        data-domains="muziek-analyse.mj.mijp.nl"></script>
 {% block head %}{% endblock %}
 </head>
 <body>
