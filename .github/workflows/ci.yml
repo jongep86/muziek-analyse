@@ -1,0 +1,61 @@
+name: CI
+
+# PR check. Pushes nothing and uses no secrets; docker-publish.yml publishes on main.
+# This repo is PUBLIC, so it runs on GitHub-hosted runners: the cluster's ARC runners take
+# private repos only (a fork PR would otherwise run its code on the cluster).
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    name: Tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+
+      - name: Run tests
+        run: python -m pytest -q
+
+  image:
+    runs-on: ubuntu-24.04
+    name: Image builds and starts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: muziek-analyse:ci
+
+      - name: Start and answer on /
+        run: |
+          set -euo pipefail
+          docker run -d --name app -p 5050:5050 muziek-analyse:ci
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5050/ || true)
+            [ "$code" = 200 ] && { echo "GET / -> 200"; exit 0; }
+            sleep 2
+          done
+          docker logs app
+          echo "app did not answer 200 on / within 60s"; exit 1
