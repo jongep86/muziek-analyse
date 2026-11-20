@@ -2,15 +2,18 @@
 """Flask webapp voor Muziek-Analyse."""
 
 import os
-import json
 import uuid
 from pathlib import Path
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import (Flask, render_template, request, redirect, url_for, flash, jsonify,
+                   send_file, g, abort, Response)
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from werkzeug.utils import secure_filename
 import io
+import secrets
 
 from config import (DB_PATH, AUDIO_EXTENSIONS, OUTPUT_DIR, SECRET_KEY,
-                    YOUTUBE_DOWNLOAD_DIR, UPLOAD_DIR, MAX_UPLOAD_SIZE)
+                    YOUTUBE_DOWNLOAD_DIR, UPLOAD_DIR, MAX_UPLOAD_SIZE,
+                    SESSION_COOKIE_SECURE, HSTS_MAX_AGE)
 from models import init_db, create_track, get_track, list_tracks, search_tracks, delete_track, update_status, update_key
 from tasks import enqueue, enqueue_youtube, enqueue_url, get_status
 
@@ -22,9 +25,79 @@ def parse_filename_metadata(filename):
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=SESSION_COOKIE_SECURE,
+    # __Host- binds the cookie to this exact host; it requires Secure and Path=/.
+    SESSION_COOKIE_NAME='__Host-session' if SESSION_COOKIE_SECURE else 'session',
+    # Tokens live as long as the session, so a tab left open still submits.
+    WTF_CSRF_TIME_LIMIT=None,
+)
+
+# Every POST form needs a valid csrf_token (templates render it with csrf_token()).
+csrf = CSRFProtect(app)
 
 # Initialize database on startup
 init_db()
+
+
+@app.before_request
+def reject_cross_site_writes():
+    """Fetch Metadata check: a browser that says the request is cross-site may not write.
+
+    Browsers without Sec-Fetch-Site (old ones, curl) fall through to the CSRF token check.
+    """
+    g.csp_nonce = secrets.token_urlsafe(16)
+    if request.method in ('GET', 'HEAD', 'OPTIONS'):
+        return None
+    if request.headers.get('Sec-Fetch-Site', 'same-origin') not in ('same-origin', 'none'):
+        abort(403)
+    return None
+
+
+@app.context_processor
+def inject_csp_nonce():
+    return {'csp_nonce': getattr(g, 'csp_nonce', '')}
+
+
+@app.after_request
+def security_headers(response):
+    """Security and privacy headers on every response."""
+    nonce = getattr(g, 'csp_nonce', '')
+    csp = [
+        f"script-src 'nonce-{nonce}' 'strict-dynamic' 'report-sample'",
+        "object-src 'none'",
+        "base-uri 'none'",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+    ]
+    h = response.headers
+    h.setdefault('Content-Security-Policy', '; '.join(csp))
+    h.setdefault('X-Frame-Options', 'DENY')
+    h.setdefault('X-Content-Type-Options', 'nosniff')
+    h.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    h.setdefault('Permissions-Policy',
+                 'camera=(), geolocation=(), microphone=(), focus-without-user-activation=()')
+    h.setdefault('Cross-Origin-Opener-Policy', 'same-origin')
+    h.setdefault('Cross-Origin-Resource-Policy', 'same-origin')
+    h.setdefault('Strict-Transport-Security', f'max-age={HSTS_MAX_AGE}')
+    # A personal tool, not a website: keep it out of search indexes and AI crawls.
+    h.setdefault('X-Robots-Tag', 'noindex, nofollow')
+    h.add('Vary', 'Sec-Fetch-Site')
+    return response
+
+
+@app.errorhandler(CSRFError)
+def csrf_error(e):
+    flash('Formulier verlopen of ongeldig. Probeer het opnieuw.', 'error')
+    return redirect(url_for('index'))
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    """Disallow everything: this tool is not meant to be indexed (no llms.txt either)."""
+    return Response('User-agent: *\nDisallow: /\n', mimetype='text/plain')
 
 
 @app.route('/')
@@ -101,7 +174,7 @@ def track_detail(track_id):
             filename_hints['bpm_match'] = abs(track['filename_bpm'] - analysis_data['bpm']) <= 3
 
     return render_template('track_detail.html', track=track, tpl_data=tpl_data,
-                          js_data=json.dumps(js_data, ensure_ascii=False),
+                          js_data=js_data,
                           filename_hints=filename_hints)
 
 
