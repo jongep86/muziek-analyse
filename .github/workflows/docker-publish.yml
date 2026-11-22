@@ -24,6 +24,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # main-<run_number> rises with every build, so an image policy can pick the newest one;
+      # latest and sha-<short> do not sort. Keep latest for local use.
       - uses: docker/metadata-action@v5
         id: meta
         with:
@@ -31,6 +33,7 @@ jobs:
           tags: |
             type=raw,value=latest
             type=sha,prefix=sha-
+            type=raw,value=main-${{ github.run_number }}
 
       - uses: docker/build-push-action@v6
         with:
