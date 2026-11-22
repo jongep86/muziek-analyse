@@ -15,7 +15,8 @@
 .meta-card-inner .value { font-size: 1.3em; font-weight: 700; color: #fff; }
 .meta-card-inner .sub { font-size: 0.75em; color: #aaa; }
 
-.toggle-container { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; padding: 10px 14px; background: rgba(233, 69, 96, 0.1); border-radius: 8px; border: 1px solid rgba(233, 69, 96, 0.3); }
+.transpose-label { display: inline; margin: 0; color: #ccc; font-weight: 400; font-size: 1em; }
+.toggle-container { flex-wrap: wrap; display: flex; align-items: center; gap: 10px; margin: 14px 0 0; padding: 10px 14px; background: rgba(233, 69, 96, 0.1); border-radius: 8px; border: 1px solid rgba(233, 69, 96, 0.3); }
 .toggle-switch { position: relative; width: 48px; height: 24px; cursor: pointer; }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
 .toggle-slider { position: absolute; inset: 0; background: #333; border-radius: 24px; transition: 0.3s; }
@@ -27,9 +28,10 @@
 .legend-item { display: flex; align-items: center; gap: 5px; }
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
 
-.chromatic-map { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 16px; }
+.chromatic-map { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; margin-bottom: 16px; }
+@media (width < 560px) { .chromatic-map { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .note-cell { text-align: center; padding: 8px 2px; border-radius: 6px; font-weight: 600; font-size: 0.8em; transition: transform 0.15s; }
-.note-cell:hover { transform: scale(1.1); z-index: 2; }
+@media (prefers-reduced-motion: no-preference) { .note-cell:hover { transform: scale(1.1); z-index: 2; } }
 .note-cell .note-name { display: block; }
 .note-cell .note-role { display: block; font-size: 0.6em; font-weight: 400; opacity: 0.8; margin-top: 1px; }
 .note-cell.chord_tone { background: rgba(46,204,113,0.3); border: 2px solid #2ecc71; color: #2ecc71; }
@@ -47,27 +49,28 @@
 .phrase-note.approach { background: #f39c12; color: #000; }
 .phrase-note.avoid { background: #e74c3c; color: #fff; }
 .phrase-note.passing { background: #9b59b6; color: #fff; }
-.phrase-arrow { display: flex; align-items: center; color: #555; }
+.phrase-arrow { display: flex; align-items: center; color: #8a8aa0; }
 .phrase-tip { font-size: 0.8em; color: #aaa; font-style: italic; }
 
 .timeline-container { background: #111; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #2a2a4a; overflow-x: auto; }
 .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .timeline-header h2 { color: #e94560; font-size: 1.1em; }
-.timeline { position: relative; height: 60px; background: #1a1a2e; border-radius: 8px; overflow: hidden; cursor: pointer; }
-.chord-block { position: absolute; top: 0; height: 100%; display: flex; align-items: center; justify-content: center; border-right: 1px solid rgba(0,0,0,0.3); font-weight: 600; font-size: 0.8em; cursor: pointer; transition: filter 0.15s; overflow: hidden; white-space: nowrap; padding: 0 3px; }
+.timeline { position: relative; height: 60px; background: #1a1a2e; border-radius: 8px; overflow: hidden; }
+.chord-block { position: absolute; top: 0; height: 100%; font: inherit; border: 0; margin: 0; display: flex; align-items: center; justify-content: center; border-right: 1px solid rgba(0,0,0,0.3); font-weight: 600; font-size: 0.8em; cursor: pointer; transition: filter 0.15s; overflow: hidden; white-space: nowrap; padding: 0 3px; }
 .chord-block:hover { filter: brightness(1.3); z-index: 2; }
+.chord-block:focus-visible { outline: 2px solid #fff; outline-offset: -2px; z-index: 3; }
 .section-markers { position: relative; height: 22px; margin-top: 4px; }
 .section-marker { position: absolute; font-size: 0.7em; font-weight: 700; color: #e94560; background: rgba(233,69,96,0.15); padding: 1px 6px; border-radius: 4px; }
 
 .section-card-inner { background: #111; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #2a2a4a; }
 .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .section-label { font-size: 1.1em; font-weight: 800; color: #e94560; background: rgba(233,69,96,0.15); padding: 4px 14px; border-radius: 6px; min-width: 36px; text-align: center; }
-.section-time { font-size: 0.85em; color: #888; }
+.section-time { font-size: 0.85em; color: #a3a3b8; }
 .section-chords { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-.section-chord { padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 1.05em; cursor: pointer; transition: all 0.15s; border: 2px solid transparent; }
-.section-chord:hover { transform: scale(1.05); }
-.section-chord.active { border-color: #fff; }
-.section-chord .chord-dur { display: block; font-size: 0.6em; font-weight: 400; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.section-chord { font: inherit; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 1.05em; cursor: pointer; transition: border-color 0.15s, transform 0.15s; border: 2px solid transparent; text-align: center; }
+@media (prefers-reduced-motion: no-preference) { .section-chord:hover { transform: scale(1.05); } }
+.section-chord[aria-expanded="true"] { border-color: #fff; }
+.section-chord .chord-dur { display: block; font-size: 0.6em; font-weight: 400; color: rgba(255,255,255,0.8); margin-top: 2px; }
 
 .chord-color-major { background: rgba(46, 204, 113, 0.4); color: #fff; }
 .chord-color-minor { background: rgba(52, 152, 219, 0.4); color: #fff; }
@@ -91,14 +94,14 @@
 .export-bar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
 
 .override-form { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
-.override-form select { padding: 6px 10px; background: #111; border: 1px solid #2a2a4a; border-radius: 6px; color: #e0e0e0; font-size: 0.85em; }
-.override-form select:focus { outline: none; border-color: #e94560; }
+.override-form label { display: inline; margin: 0; color: #a3a3b8; font-weight: 400; }
+.override-form select, .transpose-select { font: inherit; padding: 6px 10px; background: #111; border: 1px solid #4a4a66; border-radius: 6px; color: #e0e0e0; font-size: 0.85em; }
 .override-badge { font-size: 0.75em; color: #f39c12; background: rgba(243,156,18,0.15); padding: 2px 8px; border-radius: 4px; }
 
 /* Pattern library styles */
 .patterns-section { margin-bottom: 24px; }
 .patterns-section > h2 { color: #e94560; font-size: 1.2em; margin-bottom: 6px; }
-.patterns-section > p { color: #888; font-size: 0.85em; margin-bottom: 16px; }
+.patterns-section > p { color: #a3a3b8; font-size: 0.85em; margin-bottom: 16px; }
 
 .pattern-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .pattern-filter-btn {
@@ -181,7 +184,7 @@
 /* Motif cards */
 .motifs-section { margin-bottom: 24px; }
 .motifs-section > h2 { color: #e94560; font-size: 1.2em; margin-bottom: 6px; }
-.motifs-section > p { color: #888; font-size: 0.85em; margin-bottom: 16px; }
+.motifs-section > p { color: #a3a3b8; font-size: 0.85em; margin-bottom: 16px; }
 .motif-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
 .motif-card {
     background: rgba(255,255,255,0.03); border: 1px solid #2a2a4a; border-radius: 12px;
@@ -223,13 +226,15 @@
 <!-- Export / Actions bar -->
 <div class="export-bar">
     <a href="{{ url_for('index') }}" class="btn btn-ghost">&larr; Terug</a>
-    <a href="{{ url_for('export_html', track_id=track.id) }}" class="btn btn-primary">Export HTML</a>
-    <a href="{{ url_for('export_markdown', track_id=track.id) }}" class="btn btn-primary">Export Markdown</a>
-    <form method="POST" action="{{ url_for('reanalyse', track_id=track.id) }}" style="display:inline;">
+    <a href="{{ url_for('export_html', track_id=track.id) }}" class="btn btn-primary" download>Export HTML</a>
+    <a href="{{ url_for('export_markdown', track_id=track.id) }}" class="btn btn-ghost" download>Export Markdown</a>
+    <form method="POST" action="{{ url_for('reanalyse', track_id=track.id) }}" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-ghost">Heranalyseer</button>
     </form>
     <form method="POST" action="{{ url_for('override_key', track_id=track.id) }}" class="override-form">
-        <label for="override-key" style="color:#888; font-size:0.85em;">Toonsoort:</label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="override-key">Toonsoort</label>
         <select id="override-key" name="key">
             {% for k in ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'] %}
             <option value="{{ k }}" {{ 'selected' if k == tpl_data.key }}>{{ k }}</option>
@@ -289,8 +294,8 @@
         </div>
     </div>
     <div class="toggle-container">
-        <label for="transpose-select" style="color:#ccc;">Transpositie:</label>
-        <select id="transpose-select" style="background:#1a1a2e; color:#fff; border:1px solid #444; padding:6px 12px; border-radius:6px; font-size:0.95em; margin-left:8px;">
+        <label for="transpose-select" class="transpose-label">Transpositie</label>
+        <select id="transpose-select" class="transpose-select">
             <option value="bb" selected>Bb Trompet (+2)</option>
             <option value="eb">Eb Alt Sax (+9)</option>
             <option value="concert">Concert pitch</option>
@@ -309,7 +314,7 @@
 <!-- Global chromatic note map -->
 <div class="section-card-inner">
     <h2 style="color:#e94560; font-size:1.2em; margin-bottom:12px;">Chromatische nootkaart — {{ tpl_data.key }} {{ tpl_data.mode_nl }}</h2>
-    <p style="color:#888; font-size:0.85em; margin-bottom:12px;">Overzicht van alle noten in de toonsoort.</p>
+    <p style="color:#a3a3b8; font-size:0.85em; margin-bottom:12px;">Overzicht van alle noten in de toonsoort.</p>
     <div class="chromatic-map" id="global-notemap"></div>
     <div id="global-phrases" style="margin-top:16px;"></div>
 </div>
@@ -354,9 +359,9 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const DATA = {{ js_data|safe }};
+const DATA = {{ js_data|tojson }};
 const uniqueChords = DATA.uniqueChords;
 const sectionsData = DATA.sectionsData;
 const allChords = DATA.allChords;
@@ -370,6 +375,7 @@ const bpm = DATA.bpm;
 let transposeMode = 'bb'; // 'concert', 'bb', 'eb'
 function getTransposeSemitones() { return transposeMode === 'bb' ? 2 : transposeMode === 'eb' ? 9 : 0; }
 let activePatternFilter = 'all';
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 const ROLE_INFO = {
     chord_tone: { label: 'Chord tone', color: '#2ecc71' },
@@ -404,13 +410,15 @@ function buildTimeline() {
     const tl = document.getElementById('timeline');
     tl.innerHTML = '';
     allChords.forEach(ch => {
-        const b = document.createElement('div');
+        const b = document.createElement('button');
+        b.type = 'button';
         const q = ch.quality || '';
         b.className = 'chord-block chord-color-' + (q.includes('dim')||q.includes('o') ? 'dim' : q.includes('m') ? 'minor' : q.includes('7')||q.includes('9')||q.includes('13') ? 'dom' : 'major');
         b.style.left = (ch.start / duration) * 100 + '%';
         b.style.width = Math.max(((ch.end - ch.start) / duration) * 100, 0.5) + '%';
         b.textContent = chordDisplay(ch.chord);
-        b.title = chordDisplay(ch.chord) + ' (' + fmt(ch.start) + ' \u2014 ' + fmt(ch.end) + ')';
+        b.title = chordDisplay(ch.chord) + ' (' + fmt(ch.start) + ' \u2013 ' + fmt(ch.end) + ')';
+        b.setAttribute('aria-label', b.title);
         b.addEventListener('click', () => scrollToChord(ch.chord, ch.start));
         tl.appendChild(b);
     });
@@ -439,8 +447,8 @@ function buildSections() {
         sec.chords.forEach((ch, ci) => {
             const q = ch.chord.replace(/^[A-G][#b]?/, '');
             const bars = Math.max(1, Math.round((ch.end - ch.start) / (4 * 60 / bpm)));
-            ch_html += '<div class="section-chord ' + colorClass(q) + '" data-chord="' + ch.chord + '" data-section="' + si + '" onclick="showDetail(this)">';
-            ch_html += chordDisplay(ch.chord) + '<span class="chord-dur">' + bars + (bars === 1 ? ' maat' : ' maten') + '</span></div>';
+            ch_html += '<button type="button" class="section-chord ' + colorClass(q) + '" data-chord="' + ch.chord + '" data-section="' + si + '" aria-expanded="false" aria-controls="detail-' + si + '">';
+            ch_html += chordDisplay(ch.chord) + '<span class="chord-dur">' + bars + (bars === 1 ? ' maat' : ' maten') + '</span></button>';
         });
         ch_html += '</div>';
         card.innerHTML = hdr + ch_html + '<div class="chord-detail" id="detail-' + si + '"></div>';
@@ -453,11 +461,11 @@ function showDetail(el) {
     const ch = uniqueChords[chordName];
     if (!ch) return;
     const panel = document.getElementById('detail-' + si);
-    const wasActive = el.classList.contains('active');
-    el.parentElement.querySelectorAll('.section-chord').forEach(c => c.classList.remove('active'));
+    const wasActive = el.getAttribute('aria-expanded') === 'true';
+    document.querySelectorAll('.section-chord[aria-expanded="true"]').forEach(c => c.setAttribute('aria-expanded', 'false'));
     document.querySelectorAll('.chord-detail').forEach(d => { d.classList.remove('visible'); d.innerHTML = ''; });
     if (wasActive) return;
-    el.classList.add('active'); panel.classList.add('visible');
+    el.setAttribute('aria-expanded', 'true'); panel.classList.add('visible');
     let html = '<h2>' + chordDisplay(ch.chord) + '</h2>';
     html += '<div class="detail-grid"><div class="meta-card-inner"><div class="label">Primaire toonladder</div><div class="value" style="font-size:1em;">' + ch.scale_primary + '</div></div>';
     if (ch.scale_alt) html += '<div class="meta-card-inner"><div class="label">Alternatief</div><div class="value" style="font-size:1em;">' + ch.scale_alt + '</div></div>';
@@ -472,9 +480,9 @@ function scrollToChord(chordName, startTime) {
     for (let si = 0; si < sectionsData.length; si++) {
         const sec = sectionsData[si];
         if (startTime >= sec.start && startTime <= sec.end) {
-            document.getElementById('section-' + si).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('section-' + si).scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'center' });
             const els = document.querySelectorAll('#section-' + si + ' .section-chord');
-            for (const el of els) { if (el.dataset.chord === chordName) { setTimeout(() => showDetail(el), 300); break; } }
+            for (const el of els) { if (el.dataset.chord === chordName) { setTimeout(() => { showDetail(el); el.focus({ preventScroll: true }); }, 300); break; } }
             break;
         }
     }
@@ -800,6 +808,11 @@ function buildMotifCards() {
         grid.appendChild(card);
     });
 }
+
+document.getElementById('sections-container').addEventListener('click', (event) => {
+    const tile = event.target.closest('.section-chord');
+    if (tile) showDetail(tile);
+});
 
 document.getElementById('transpose-select').addEventListener('change', function() {
     transposeMode = this.value;

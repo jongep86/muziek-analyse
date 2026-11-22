@@ -53,6 +53,18 @@ Pas `config.py` aan voor je eigen setup:
 DEFAULT_AUDIO_DIR = '/pad/naar/je/muziek'
 ```
 
+### Omgevingsvariabelen
+
+| Variabele | Standaard | Wat |
+|---|---|---|
+| `FLASK_SECRET_KEY` | willekeurig, bewaard in `DATA_DIR/.flask_secret_key` | sleutel voor sessie en CSRF-tokens |
+| `SESSION_COOKIE_SECURE` | `1` | zet op `0` als je de app via plain http op een ander adres dan `localhost` draait |
+| `HSTS_MAX_AGE` | `300` | `Strict-Transport-Security` max-age in seconden; verhoog als HTTPS stabiel is |
+
+Elk formulier dat iets wijzigt heeft een CSRF-token (Flask-WTF). De app stuurt CSP met een
+nonce per request, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`,
+COOP/CORP, HSTS en `X-Robots-Tag: noindex`.
+
 ## Gebruik
 
 ```bash

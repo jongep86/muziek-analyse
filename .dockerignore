@@ -8,6 +8,7 @@ output/
 .git/
 .gitignore
 *.md
+.flask_secret_key
 .github/
 .smithy/
 .pytest_cache/
