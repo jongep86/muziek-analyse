@@ -240,3 +240,33 @@ class TestTrackDetailMarkup:
         tid = _done_track(db_path, name='x</script><script>alert(1)</script>')
         html = client.get(f'/tracks/{tid}').get_data(as_text=True)
         assert '<script>alert(1)' not in html
+
+
+class TestServerHardening:
+    def test_healthz(self, client):
+        rv = client.get('/healthz')
+        assert rv.status_code == 200
+        assert rv.get_json() == {'status': 'ok'}
+
+    def test_security_headers(self, client):
+        rv = client.get('/')
+        assert rv.headers['X-Content-Type-Options'] == 'nosniff'
+        assert rv.headers['X-Frame-Options'] == 'DENY'
+        assert "frame-ancestors 'none'" in rv.headers['Content-Security-Policy']
+        assert rv.headers['Referrer-Policy'] == 'strict-origin-when-cross-origin'
+        assert 'noindex' in rv.headers['X-Robots-Tag']
+
+    def test_html_is_gzipped(self, client):
+        rv = client.get('/', headers={'Accept-Encoding': 'gzip, br'})
+        assert rv.headers.get('Content-Encoding') == 'gzip'
+        assert 'Accept-Encoding' in rv.headers['Vary']
+
+    def test_static_versioned_and_immutable(self, client):
+        html = client.get('/').get_data(as_text=True)
+        assert '/static/style.css?v=' in html
+        start = html.index('/static/style.css?v=')
+        url = html[start:html.index('"', start)]
+        rv = client.get(url, headers={'Accept-Encoding': 'gzip'})
+        assert rv.status_code == 200
+        assert 'immutable' in rv.headers['Cache-Control']
+        assert rv.headers.get('Content-Encoding') == 'gzip'

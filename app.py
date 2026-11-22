@@ -10,6 +10,8 @@ from flask_wtf.csrf import CSRFProtect, CSRFError
 from werkzeug.utils import secure_filename
 import io
 import secrets
+import gzip
+import sqlite3
 
 from config import (DB_PATH, AUDIO_EXTENSIONS, OUTPUT_DIR, SECRET_KEY,
                     YOUTUBE_DOWNLOAD_DIR, UPLOAD_DIR, MAX_UPLOAD_SIZE,
@@ -37,6 +39,10 @@ app.config.update(
 
 # Every POST form needs a valid csrf_token (templates render it with csrf_token()).
 csrf = CSRFProtect(app)
+
+# Static URLs carry ?v=<mtime> (see static_version), so a long immutable cache is safe.
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
+COMPRESSIBLE = ('text/', 'application/json', 'application/javascript')
 
 # Initialize database on startup
 init_db()
@@ -98,6 +104,52 @@ def csrf_error(e):
 def robots_txt():
     """Disallow everything: this tool is not meant to be indexed (no llms.txt either)."""
     return Response('User-agent: *\nDisallow: /\n', mimetype='text/plain')
+
+
+@app.url_defaults
+def static_version(endpoint, values):
+    """Add ?v=<mtime> to static URLs so browsers can cache them immutably."""
+    if endpoint == 'static' and 'filename' in values:
+        path = os.path.join(app.static_folder, values['filename'])
+        try:
+            values['v'] = int(os.stat(path).st_mtime)
+        except OSError:
+            pass
+
+
+@app.after_request
+def cache_and_compress(response):
+    """Immutable caching for versioned static files, gzip for text bodies.
+
+    Security headers come from security_headers() above.
+    """
+    if request.endpoint == 'static' and request.args.get('v'):
+        response.cache_control.immutable = True
+        response.cache_control.public = True
+
+    response.vary.add('Accept-Encoding')
+    if (response.status_code == 200
+            and 'gzip' in request.headers.get('Accept-Encoding', '')
+            and 'Content-Encoding' not in response.headers
+            and (response.mimetype or '').startswith(COMPRESSIBLE)
+            and (response.direct_passthrough or not response.is_streamed)):
+        response.direct_passthrough = False
+        body = response.get_data()
+        if len(body) >= 1024:
+            response.set_data(gzip.compress(body, compresslevel=6))
+            response.headers['Content-Encoding'] = 'gzip'
+    return response
+
+
+@app.route('/healthz')
+def healthz():
+    """Liveness and readiness: the app answers and the database opens."""
+    try:
+        with sqlite3.connect(DB_PATH, timeout=2) as conn:
+            conn.execute('SELECT 1').fetchone()
+    except sqlite3.Error as e:
+        return jsonify(status='error', error=str(e)), 503
+    return jsonify(status='ok')
 
 
 @app.route('/')
@@ -176,6 +228,7 @@ def track_detail(track_id):
     return render_template('track_detail.html', track=track, tpl_data=tpl_data,
                           js_data=js_data,
                           filename_hints=filename_hints)
+
 
 
 @app.route('/tracks/<int:track_id>/export/html')
